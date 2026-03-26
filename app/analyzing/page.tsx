@@ -10,78 +10,68 @@ function AnalyzingContent() {
   const router = useRouter()
   const url = searchParams.get("url") ?? "minhaloja.com.br"
 
-  const [currentStep, setCurrentStep] = useState(0)
-  const [completedSteps, setCompletedSteps] = useState<number[]>([])
+  // Index of the step currently being "loaded" (ShiningText). -1 = not started yet.
+  const [currentStep, setCurrentStep] = useState(-1)
+  // Steps that have finished loading (static black text)
+  const [doneSteps, setDoneSteps] = useState<number[]>([])
 
   useEffect(() => {
-    let step = 0
+    let idx = 0
 
-    function advance() {
-      if (step < ANALYZING_STEPS.length) {
-        setCompletedSteps((prev) => [...prev, step - 1].filter((s) => s >= 0))
-        setCurrentStep(step)
-        step++
-        setTimeout(advance, 480)
+    function showNext() {
+      if (idx < ANALYZING_STEPS.length) {
+        const current = idx
+        setCurrentStep(current)
+        idx++
+        setTimeout(() => {
+          // Mark this step as done and immediately show the next one
+          setDoneSteps(prev => [...prev, current])
+          showNext()
+        }, 900)
       } else {
-        setCompletedSteps(ANALYZING_STEPS.map((_, i) => i))
+        // All done
+        setCurrentStep(-1)
         setTimeout(() => {
           router.push(`/results?url=${encodeURIComponent(url)}`)
         }, 600)
       }
     }
 
-    const timeout = setTimeout(advance, 300)
-    return () => clearTimeout(timeout)
+    const init = setTimeout(showNext, 400)
+    return () => clearTimeout(init)
   }, [url, router])
 
+  // Which step indices are visible (done or current)
+  const visibleUpTo = currentStep >= 0 ? currentStep : doneSteps.length - 1
+
   return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-center px-6"
-      style={{ background: "#FFFFFF" }}
-    >
+    <div className="min-h-screen flex flex-col items-center justify-center px-6 bg-white">
       <div className="w-full max-w-sm">
         {/* URL being analyzed */}
-        <p
-          className="text-[12px] text-[#6B6B6B] mb-8"
-          style={{ fontFamily: "'DM Mono', monospace" }}
-        >
+        <p className="text-[12px] text-[#6B6B6B] mb-8 font-mono">
           ↳ {url}
         </p>
 
-        {/* Steps */}
+        {/* Steps — only render visible ones */}
         <div className="flex flex-col gap-3">
           {ANALYZING_STEPS.map((step, index) => {
-            const isDone = completedSteps.includes(index)
-            const isCurrent = currentStep === index && !isDone
-            const isPending = !isDone && !isCurrent
+            if (index > visibleUpTo) return null
+            const isDone = doneSteps.includes(index)
+            const isCurrent = currentStep === index
 
             return (
               <div key={step} className="flex items-center gap-3">
-                {/* Icon */}
                 <span
-                  className="text-[14px] w-4 flex-shrink-0"
-                  style={{
-                    fontFamily: "'DM Mono', monospace",
-                    color: isDone ? "#16A34A" : isCurrent ? "#0A0A0A" : "transparent",
-                  }}
+                  className="text-[14px] w-4 flex-shrink-0 font-mono"
+                  style={{ color: isDone ? "#16A34A" : "#0A0A0A" }}
                 >
-                  {isDone ? "✓" : isCurrent ? "→" : "·"}
+                  {isDone ? "✓" : "→"}
                 </span>
-
-                {/* Text */}
                 <span
                   className="text-[14px]"
-                  style={{
-                    fontFamily: "'DM Sans', sans-serif",
-                    color: isDone ? "#16A34A" : isPending ? "#ABABAB" : "#0A0A0A",
-                    opacity: isPending ? 0.35 : 1,
-                  }}
+                  style={{ color: isDone ? "#0A0A0A" : "#0A0A0A" }}
                 >
-                  {isCurrent ? (
-                    <ShiningText text={step} />
-                  ) : (
-                    step
-                  )}
+                  {isCurrent ? <ShiningText text={step} /> : step}
                 </span>
               </div>
             )
@@ -89,10 +79,7 @@ function AnalyzingContent() {
         </div>
 
         {/* Microcopy */}
-        <p
-          className="text-[13px] text-[#ABABAB] mt-10"
-          style={{ fontFamily: "'DM Sans', sans-serif" }}
-        >
+        <p className="text-[13px] text-[#ABABAB] mt-10">
           A maioria das lojas perde vendas todos os dias por problemas simples.
         </p>
       </div>
