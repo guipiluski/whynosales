@@ -64,7 +64,7 @@ export default function LandingPage() {
 
         {/* Input row */}
         <div
-          className="flex items-center w-full max-w-[480px] rounded-[10px] transition-all duration-150"
+          className="flex items-center w-full max-w-[480px] rounded-full transition-all duration-150"
           style={{
             border: focused ? "1px solid #0A0A0A" : "1px solid #E5E5E5",
             boxShadow: focused ? "0 0 0 3px rgba(10,10,10,0.06)" : "none",
